@@ -16,9 +16,6 @@
 
 void SU_removeFile(const char * file){
   /* VERY Dirty tmp version */
-  char buffer[SU_MAXLINESIZE];
-  snprintf(buffer, SU_MAXLINESIZE, "rm %s",file);
-  //fprintf(stderr, "%s\n", buffer);
-  int resSys = system(buffer);
+  int resSys = remove(file);
   assert(resSys != -1); // TODO : change with err
 }
