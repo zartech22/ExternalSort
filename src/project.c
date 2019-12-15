@@ -7,6 +7,7 @@
 
 #include "system_utils.h"
 #include "project_v0.h"
+#include "project_v1.h"
 
 /**
  * @brief Maximum length (in character) for a file name.
@@ -41,6 +42,7 @@ void usage(){
   fprintf(stderr, "\t demoSortSplit \t Sort a file with a 3 files split	  \n");
   fprintf(stderr, "\t demoSort	    \t Sort a file without spliting	  \n");
   fprintf(stderr, "\t projectV0	    \t V0 of the project         	  \n");
+  fprintf(stderr, "\t projectV1	    \t V1 of the project              \n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Examples:								    \n");
   fprintf(stderr, "./bin/project -m test						    \n");
@@ -72,6 +74,7 @@ int main(int argc, char ** argv){
   int mode_test          = 0;
   int mode_demoSort      = 0;
   int mode_projectV0     = 0;
+  int mode_projectV1	 = 0;
   int mode_demoSortSplit = 0;
   int mode_lineCount     = 0;
   int mode_generation    = 0;
@@ -115,76 +118,114 @@ int main(int argc, char ** argv){
   }
 
   /* Check mode */
-  if(strcmp(mode, "demoSort") == 0){
+  if(strcmp(mode, "demoSort") == 0)
+  {
     mode_demoSort = 1;
     /* need at least in and out file */
-    if(strcmp(i_file, "") == 0 || strcmp(o_file, "") == 0){
+    if(strcmp(i_file, "") == 0 || strcmp(o_file, "") == 0)
+	{
       fprintf(stderr, "Missing parameters: need an output and an input file.\n");
       errflg++;
     }
-  } else if(strcmp(mode, "demoSortSplit") == 0){
+  } 
+  else if(strcmp(mode, "demoSortSplit") == 0)
+  {
     mode_demoSortSplit = 1;
     /* need at least in and out file */
-    if(strcmp(i_file, "") == 0 || strcmp(o_file, "") == 0){
+    if(strcmp(i_file, "") == 0 || strcmp(o_file, "") == 0)
+	{
       fprintf(stderr, "Missing parameters: need an output and an input file.\n");
       errflg++;
     }
-  } else if(strcmp(mode, "projectV0") == 0){
+  } 
+  else if(strcmp(mode, "projectV0") == 0)
+  {
     mode_projectV0 = 1;
     /* need at least in and out file */
-    if(strcmp(i_file, "") == 0 || strcmp(o_file, "") == 0){
+    if(strcmp(i_file, "") == 0 || strcmp(o_file, "") == 0)
+	{
       fprintf(stderr, "Missing parameters: need an output and an input file.\n");
       errflg++;
     }
-  } else if(strcmp(mode, "test") == 0) {
+  }
+  else if (strcmp(mode, "projectV1") == 0)
+  {
+	  mode_projectV1 = 1;
+
+	  /* need at least in and out file */
+	  if (strcmp(i_file, "") == 0 || strcmp(o_file, "") == 0)
+	  {
+		  fprintf(stderr, "Missing parameters: need an output and an input file.\n");
+		  errflg++;
+	  }
+  }
+  else if(strcmp(mode, "test") == 0)
+  {
     mode_test = 1;
-  } else if(strcmp(mode, "generation") == 0) {
+  } 
+  else if(strcmp(mode, "generation") == 0)
+  {
     mode_generation = 1;
     /* need at least out file */
-    if(strcmp(o_file, "") == 0){
+    if(strcmp(o_file, "") == 0)
+	{
       fprintf(stderr, "Missing parameters: need an output file.\n");
       errflg++;
     }
-  } else if(strcmp(mode, "lineCount") == 0) {
+  }
+  else if(strcmp(mode, "lineCount") == 0)
+  {
     mode_lineCount = 1;
     /* need at least out file */
-    if(strcmp(i_file, "") == 0){
+    if(strcmp(i_file, "") == 0)
+	{
       fprintf(stderr, "Missing parameters: need an intput file.\n");
       errflg++;
     }
-  } else {
-    errflg ++;
   }
+  else
+    errflg ++;
 
 
-  if (errflg) {
+  if (errflg)
+  {
     usage();
     exit(1);
   }
 
   /* Main */
   /* Mode test */
-  if(mode_test){
+  if(mode_test)
     test();
-  }
 
   /* Call the right function for a mode */
-  if(mode_generation){
-    /* Mode generation */
-    generation(o_file, nb_values);
-  } else if(mode_lineCount){
-    /* Mode line count */
-    lineCount(i_file);
-  } else if(mode_demoSortSplit){
-    /* Mode demo sort */
-    demoSortSplit(i_file, o_file);
-  } else if(mode_demoSort){
-    /* Mode demo sort split*/
-    demoSort(i_file, o_file);
-  } else if(mode_projectV0){
-    /* Mode demo sort split*/
-    projectV0(i_file, o_file, nb_split);
+  if (mode_generation)
+  {
+	  /* Mode generation */
+	  generation(o_file, nb_values);
   }
+  else if (mode_lineCount)
+  {
+	  /* Mode line count */
+	  lineCount(i_file);
+  }
+  else if (mode_demoSortSplit)
+  {
+	  /* Mode demo sort */
+	  demoSortSplit(i_file, o_file);
+  }
+  else if (mode_demoSort)
+  {
+	  /* Mode demo sort split*/
+	  demoSort(i_file, o_file);
+  }
+  else if (mode_projectV0)
+  {
+	  /* Mode demo sort split*/
+	  projectV0(i_file, o_file, nb_split);
+  }
+  else if (mode_projectV1)
+	  projectV1(i_file, o_file, nb_split);
 
   /* End */
   return 0;
