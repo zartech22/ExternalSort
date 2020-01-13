@@ -28,7 +28,7 @@ CC = gcc
 
 # Options
 CFLAGS = -O0 -g -W -Wall -Wextra -Wconversion -Werror -mtune=native  -march=native  -std=c99
-LDFLAGS = -lm -W -Wall -pedantic -L. -lm
+LDFLAGS = -lm -W -Wall -pedantic -L. -lm -lpthread
 
 # Fichiers
 DOX = ${wildcard ${DOCPATH}/*.dox} # Sources
