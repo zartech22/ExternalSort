@@ -130,6 +130,8 @@ void projectV2_sortFiles(unsigned long nb_split, const char ** filenames, const 
 
 	for (cpt = 0; cpt < nb_split; ++cpt)
 		waitpid(childList[cpt], NULL, 0);
+
+	free(childList);
 }
 
 void projectV2_combMerge(unsigned long nb_split, const char ** filenames_sort, const char * o_file)
