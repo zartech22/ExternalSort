@@ -15,7 +15,13 @@
 /********************** File managment ************/
 
 void SU_removeFile(const char * file){
+	pid_t pid = fork();
   /* VERY Dirty tmp version */
-  int resSys = remove(file);
-  assert(resSys != -1); // TODO : change with err
+	if (pid == 0)
+	{
+		int resSys = execlp("rm", "rm", file, (char*)NULL);
+		assert(resSys != -1); // TODO : change with err
+	}
+
+	wait(NULL);
 }
