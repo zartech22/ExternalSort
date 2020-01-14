@@ -46,4 +46,6 @@ void projectV3_combMerge(unsigned long nb_split,
 	const char ** filenames_sort,
 	const char * o_file);
 
+void* projectV3_comboMergeStack(void *args);
+
 #endif
