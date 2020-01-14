@@ -15,7 +15,18 @@ struct sortFileArguments
 	unsigned long nb;
 };
 
+struct mergeFileArguments
+{
+	unsigned int id;
+
+	unsigned long start;
+	unsigned long end;
+
+	const char **SortedFilenames;
+};
+
 typedef struct sortFileArguments sortFileArguments;
+typedef struct mergeFileArguments mergeFileArguments;
 
  /**
   * @brief Maximum length (in character) for a file name.
@@ -156,29 +167,70 @@ void* projectV3_sortSingleFile(void *arg)
 
 void projectV3_combMerge(unsigned long nb_split, const char ** filenames_sort, const char * o_file)
 {
-	int nb_print = 0;
-	unsigned long cpt = 0;
+	pthread_t stack1, stack2;
+	mergeFileArguments stack1Args, stack2Args;
 
+	unsigned int id = 0;
+
+	int nb_print;
 	char previous_name[PROJECT_FILENAME_MAX_SIZE];
+	char current_name[PROJECT_FILENAME_MAX_SIZE];
 
-	unsigned long start = 0;
-	unsigned long end = (nb_split / 2) + 1;
 
-	pid_t childPids[2];
+	stack1Args.id = id++;
+	stack1Args.start = 0;
+	stack1Args.end = (nb_split / 2) + 1;
+	stack1Args.SortedFilenames = filenames_sort;
 
-	childPids[0] = fork();
+	stack2Args.id = id++;
+	stack2Args.start = (nb_split / 2) + 1;
+	stack2Args.end = nb_split;
+	stack2Args.SortedFilenames = filenames_sort;
 
-	if (childPids[0] != 0)
-	{
-		start = end;
-		end = nb_split;
+	pthread_create(&stack1, NULL, &projectV3_comboMergeStack, (void*)(&stack1Args));
+	pthread_create(&stack2, NULL, &projectV3_comboMergeStack, (void*)(&stack2Args));
 
-		childPids[1] = fork();
-	}
+	pthread_join(stack1, NULL);
+	pthread_join(stack2, NULL);
 
 	nb_print = snprintf(previous_name,
 		PROJECT_FILENAME_MAX_SIZE,
-		"%s", filenames_sort[start]);
+		"/tmp/final_split_%u_merge.txt", stack1Args.id);
+
+	if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
+		err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
+
+	nb_print = snprintf(current_name,
+		PROJECT_FILENAME_MAX_SIZE,
+		"/tmp/final_split_%u_merge.txt", stack2Args.id);
+
+	if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
+		err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
+
+	/* Last merge */
+	fprintf(stderr, "Final merge sort : %s + %s -> %s \n",
+		previous_name,
+		current_name,
+		o_file);
+
+	SU_mergeSortedFiles(previous_name,
+		current_name,
+		o_file);
+
+	SU_removeFile(previous_name);
+	SU_removeFile(current_name);
+}
+
+void * projectV3_comboMergeStack(void * args)
+{
+	const mergeFileArguments * const arguments = (mergeFileArguments*)args;
+	int nb_print;
+
+	char previous_name[PROJECT_FILENAME_MAX_SIZE];
+
+	nb_print = snprintf(previous_name,
+		PROJECT_FILENAME_MAX_SIZE,
+		"%s", arguments->SortedFilenames[arguments->start]);
 
 	if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
 		err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
@@ -187,97 +239,63 @@ void projectV3_combMerge(unsigned long nb_split, const char ** filenames_sort, c
 
 	nb_print = snprintf(current_name,
 		PROJECT_FILENAME_MAX_SIZE,
-		"/tmp/tmp_split_%d_merge_%d.txt", getpid(), 0);
+		"/tmp/tmp_split_%u_merge_%d.txt", arguments->id, 0);
 
 	if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
 	{
 		err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
 	}
 
-	if (childPids[0] == 0 || childPids[1] == 0)
+	
+	for (unsigned long cpt = arguments->start + 1; cpt < arguments->end - 1; ++cpt)
 	{
-		for (cpt = start + 1; cpt < end - 1; ++cpt)
-		{
-			fprintf(stderr, "Merge sort %lu : %s + %s -> %s \n",
-				cpt,
-				previous_name,
-				filenames_sort[cpt],
-				current_name);
-
-			SU_mergeSortedFiles(previous_name,
-				filenames_sort[cpt],
-				current_name);
-
-			SU_removeFile(previous_name);
-			SU_removeFile(filenames_sort[cpt]);
-
-			nb_print = snprintf(previous_name,
-				PROJECT_FILENAME_MAX_SIZE,
-				"%s", current_name);
-
-			if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
-				err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
-
-			nb_print = snprintf(current_name,
-				PROJECT_FILENAME_MAX_SIZE,
-				"/tmp/tmp_split_%d_merge_%lu.txt", getpid(), cpt);
-
-			if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
-				err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
-		}
-
-		nb_print = snprintf(current_name,
-			PROJECT_FILENAME_MAX_SIZE,
-			"/tmp/final_split_%d_merge.txt", getpid());
-
-		if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
-			err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
-
-		/* Last merge */
-		fprintf(stderr, "Last merge sort : %s + %s -> %s \n",
+		fprintf(stderr, "Merge sort %lu : %s + %s -> %s \n",
+			cpt,
 			previous_name,
-			filenames_sort[end - 1],
+			arguments->SortedFilenames[cpt],
 			current_name);
 
 		SU_mergeSortedFiles(previous_name,
-			filenames_sort[end - 1],
+			arguments->SortedFilenames[cpt],
 			current_name);
 
 		SU_removeFile(previous_name);
-		SU_removeFile(filenames_sort[end - 1]);
-
-		_exit(EXIT_SUCCESS);
-	}
-	else
-	{
-		waitpid(childPids[0], NULL, 0);
-		waitpid(childPids[1], NULL, 0);
+		SU_removeFile(arguments->SortedFilenames[cpt]);
 
 		nb_print = snprintf(previous_name,
 			PROJECT_FILENAME_MAX_SIZE,
-			"/tmp/final_split_%d_merge.txt", childPids[0]);
+			"%s", current_name);
 
 		if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
 			err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
 
 		nb_print = snprintf(current_name,
 			PROJECT_FILENAME_MAX_SIZE,
-			"/tmp/final_split_%d_merge.txt", childPids[1]);
+			"/tmp/tmp_split_%u_merge_%lu.txt", arguments->id, cpt);
 
 		if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
 			err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
-
-		/* Last merge */
-		fprintf(stderr, "Final merge sort : %s + %s -> %s \n",
-			previous_name,
-			current_name,
-			o_file);
-
-		SU_mergeSortedFiles(previous_name,
-			current_name,
-			o_file);
-
-		SU_removeFile(previous_name);
-		SU_removeFile(current_name);
 	}
+
+	nb_print = snprintf(current_name,
+		PROJECT_FILENAME_MAX_SIZE,
+		"/tmp/final_split_%u_merge.txt", arguments->id);
+
+	if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
+		err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
+
+	/* Last merge */
+	fprintf(stderr, "Last merge sort : %s + %s -> %s \n",
+		previous_name,
+		arguments->SortedFilenames[arguments->end - 1],
+		current_name);
+
+	SU_mergeSortedFiles(previous_name,
+		arguments->SortedFilenames[arguments->end - 1],
+		current_name);
+
+	SU_removeFile(previous_name);
+	SU_removeFile(arguments->SortedFilenames[arguments->end - 1]);
+
+	return NULL;
 }
