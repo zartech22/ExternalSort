@@ -148,7 +148,7 @@ void projectV2_combMerge(unsigned long nb_split, const char ** filenames_sort, c
 
 	childPids[0] = fork();
 
-	if (childPids[0] != 0)
+	if (childPids[0] != 0 && nb_split != 3) // Avoid case where nb_split == 3. No need to fork, father process will handle it
 	{
 		start = end;
 		end = nb_split;
@@ -174,7 +174,7 @@ void projectV2_combMerge(unsigned long nb_split, const char ** filenames_sort, c
 		err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
 	}
 
-	if (childPids[0] == 0 || childPids[1] == 0)
+	if (childPids[0] == 0 || (nb_split != 3 && childPids[1] == 0))
 	{
 		for (cpt = start + 1; cpt < end - 1; ++cpt)
 		{
@@ -231,7 +231,12 @@ void projectV2_combMerge(unsigned long nb_split, const char ** filenames_sort, c
 	else
 	{
 		waitpid(childPids[0], NULL, 0);
-		waitpid(childPids[1], NULL, 0);
+
+		if (nb_split != 3)
+		{
+			waitpid(childPids[1], NULL, 0);
+		}
+		
 
 		nb_print = snprintf(previous_name,
 			PROJECT_FILENAME_MAX_SIZE,
@@ -240,9 +245,19 @@ void projectV2_combMerge(unsigned long nb_split, const char ** filenames_sort, c
 		if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
 			err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
 
-		nb_print = snprintf(current_name,
-			PROJECT_FILENAME_MAX_SIZE,
-			"/tmp/final_split_%d_merge.txt", childPids[1]);
+		// If nb_split == 3, then we just merge the final file from 1st child and the last sorted file
+		if (nb_split == 3)
+		{
+			nb_print = snprintf(current_name,
+				PROJECT_FILENAME_MAX_SIZE,
+				"%s", filenames_sort[end]);
+		}
+		else // Else we can take final merged files from both child, and merge them
+		{
+			nb_print = snprintf(current_name,
+				PROJECT_FILENAME_MAX_SIZE,
+				"/tmp/final_split_%d_merge.txt", childPids[1]);
+		}
 
 		if (nb_print >= PROJECT_FILENAME_MAX_SIZE)
 			err(1, "Out of buffer (%s:%d)", __FILE__, __LINE__);
