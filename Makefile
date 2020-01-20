@@ -76,6 +76,15 @@ clean-bin :
 	@echo
 	rm -f ${BINTGTS}
 
+clean-tmp:
+	@echo
+	@echo Cleaning : /tmp
+	@echo --------
+	@echo
+	rm -f /tmp/tmp_*.txt
+	rm -f /tmp/final_*.txt
+	rm -f /tmp/merged_*.txt
+
 distclean : clean clean-emacs clean-bin clean-doc
 
 
